@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +16,7 @@ func xorCipher(data []byte, key byte) []byte {
 }
 
 func SimulateRansomware() {
-	fmt.Println("[Red] Starting ransomware simulation...")
+	Info("[Red] Starting ransomware simulation...")
 	
 	targets := []string{}
 	filepath.Walk(SandboxDir, func(path string, info os.FileInfo, err error) error {
@@ -31,7 +30,7 @@ func SimulateRansomware() {
 	})
 
 	for _, target := range targets {
-		fmt.Printf("[Red] Encrypting: %s\n", filepath.Base(target))
+		Info("[Red] Encrypting: %s", filepath.Base(target))
 		
 		data, err := os.ReadFile(target)
 		if err != nil {
@@ -49,6 +48,6 @@ func SimulateRansomware() {
 	}
 
 	if len(targets) == 0 {
-		fmt.Println("[Red] No more files to encrypt. Ransomware simulation idle.")
+		Info("[Red] No more files to encrypt. Ransomware simulation idle.")
 	}
 }

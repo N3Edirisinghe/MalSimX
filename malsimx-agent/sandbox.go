@@ -24,12 +24,12 @@ func SetupSandbox() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("[*] Sandbox initialized at: %s\n", SandboxDir)
+	Info("[*] Sandbox initialized at: %s", SandboxDir)
 	return nil
 }
 
 func GenerateDummyFiles(count int) {
-	fmt.Printf("[*] Generating %d dummy files in sandbox...\n", count)
+	Info("[*] Generating %d dummy files in sandbox...", count)
 	extensions := []string{".txt", ".log", ".csv", ".dat"}
 
 	// Create some nested dirs
@@ -52,7 +52,7 @@ func GenerateDummyFiles(count int) {
 
 		os.WriteFile(path, data, 0644)
 	}
-	fmt.Printf("[*] Successfully created %d dummy files.\n", count)
+	Info("[*] Successfully created %d dummy files.", count)
 }
 
 func randString(n int) string {

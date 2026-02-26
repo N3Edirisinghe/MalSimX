@@ -1,36 +1,49 @@
 package main
 
 import (
-	"fmt"
 	"time"
 )
 
 func main() {
 	c2Url := "http://localhost:3000/api/beacon"
+	logUrl := "http://localhost:3000/api/logs"
 	status := "active"
 
-	fmt.Println("[Red] MalSimX Go Agent Starting...")
+	// Start asynchronous log flushing to the C2
+	go FlushLogs(logUrl)
+
+	Info("[Red] MalSimX Go Agent Starting...")
 
 	err := SetupSandbox()
 	if err != nil {
-		fmt.Printf("[!] Failed to setup sandbox: %v\n", err)
+		Info("[!] Failed to setup sandbox: %v", err)
 		return
 	}
 
 	GenerateDummyFiles(20)
-	fmt.Println("[Red] Sandbox ready.")
+	Info("[Red] Sandbox ready.")
 
 	for {
-		fmt.Printf("[Red] Beaconing %s...\n", c2Url)
+		Info("[Red] Beaconing %s...", c2Url)
 		
-		_, err := SendBeacon(c2Url, status)
+		resp, err := SendBeacon(c2Url, status)
 		if err != nil {
-			fmt.Printf("[Red Error] C2 Beacon failed: %v\n", err)
+			Info("[Red Error] C2 Beacon failed: %v", err)
 		} else {
-			fmt.Println("[Red] C2 Beacon successful: HTTP 200")
-			
-			// Always simulate ransomware on successful check-in for MVP
-			SimulateRansomware()
+			if resp.Command != "" && resp.Command != "sleep" {
+				Info("[Red] C2 command received: %s", resp.Command)
+				
+				switch resp.Command {
+				case "ransomware":
+					SimulateRansomware()
+				case "exfiltration":
+					SimulateExfiltration()
+				case "discovery":
+					SimulateDiscovery()
+				default:
+					Info("[Red] Unknown command from C2: %s", resp.Command)
+				}
+			}
 		}
 
 		time.Sleep(5 * time.Second)

