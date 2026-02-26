@@ -1,57 +1,50 @@
-# PurpleTrace Simulator
+# MalSimX Commercial Edition
 
-PurpleTrace Simulator is an educational Purple Team adversary emulation tool. It is designed to simulate realistic "malware-like" behaviors within a safe, isolated sandbox environment while simultaneously providing lightweight defender monitoring to detect those behaviors through filesystem telemetry and heuristics.
+MalSimX has evolved from a local Python script into a **distributed, commercial-grade Breach and Attack Simulation (BAS) architecture**. It is designed to act as an educational Command & Control (C2) and payload testing framework.
 
-## Features
+The project is split into two distinct components:
+1. **`malsimx-c2`**: A Next.js Web Dashboard acting as the C2 Server.
+2. **`malsimx-agent`**: A standalone, compiled Go binary acting as the simulated malware payload.
 
-This project implements a duo-split architecture:
-1. **Adversary (Red Team) Simulation**: Simulates malicious actions such as ransomware-like file encryption and periodic C2 (Command and Control) beaconing.
-2. **Defender (Blue Team) Monitoring**: Actively watches the sandbox directory for suspicious activities, such as mass file modifications, high-entropy file writes (indicative of encryption), and ransomware-specific file extensions `.locked`.
+## Architecture
 
-### Key Components
+* **The C2 Dashboard**: Provides a real-time, dark-mode hacker UI to track active implants. It queues commands in a local JSON database and serves a `/api/beacon` endpoint for agents to check into.
+* **The Go Agent**: When executed on a target machine, it initializes a safe `sandbox/` directory filled with dummy data. It runs silently in the background, beaconing the C2 server every 5 seconds.
+* **Live Telemetry**: The agent features a custom `logger`, intercepting all payload execution outputs and streaming them back to the C2 Dashboard so learners can watch exactly what the adversary is doing in real-time.
 
-- **`config.py`**: Initializes the sandbox environment, generates dummy files for testing, and enforces strict path-checking to prevent directory traversal attacks (sandbox escapes).
-- **`main.py`**: The central orchestrator. It sets up the sandbox, starts a Mock C2 Server, initializes the Defender Watchdog, and launches the Adversary Simulator.
-- **`adversary.py`**: Contains the `AdversarySimulator` logic. This script locates dummy files, applies a simple XOR cipher to simulate encryption, appends a `.locked` extension, and periodically reaches out to the Mock C2 Server.
-- **`defender.py`**: Implements the `DefenderMonitor` using the `watchdog` library. It calculates file entropy on modification, alerts on mass file changes, detects `.locked` file creations, and logs all events to a JSON Lines (`.jsonl`) file in the `logs/` directory.
+## The Playbooks (Attack Library)
+From the dashboard, users can interactively deploy the following simulations:
+* 📘 **Discovery (Reconnaissance)**: Gathers Current User, Hostname, and Network Interfaces.
+* 💛 **Exfiltration**: Zips the dummy sandbox directory and simulates a secure data upload.
+* 💀 **Ransomware**: Executes a local XOR-cipher encryption across the `sandbox/` directory, appending `.locked` to the files.
 
-## Prerequisite
+---
 
-Ensure you have Python 3.8+ installed. The required dependencies are listed in `requirements.txt`.
+## 🚀 How to Run MalSimX
 
-Install the dependencies using `pip`:
+You will need to run the C2 Server and the Agent simultaneously in two separate terminal windows.
 
-```bash
-pip install -r requirements.txt
-```
-
-## How to Run
-
-1. Open a terminal or command prompt.
-2. Navigate to the root folder of the project.
-3. Run the main orchestrator script:
+### 1. Start the Command & Control (C2) Server
+Ensure you have Node.js and `npm` installed.
 
 ```bash
-python main.py
+cd malsimx-c2
+npm install
+npm run dev
+```
+Once it says `Ready`, open your browser horizontally to **http://localhost:3000** to view the Command & Control dashboard.
+
+### 2. Start the MalSimX Agent
+Ensure you have Go installed (`go1.20+`). Open a **second terminal window**:
+
+```bash
+cd malsimx-agent
+go build -ldflags="-w -s" -o malsimx-agent
+./malsimx-agent
 ```
 
-### What happens when you run it?
-
-1. The script will initialize a fresh `sandbox/` directory and populate it with randomly generated dummy files.
-2. A Mock C2 Server will start in the background on `http://127.0.0.1:8080`.
-3. The Defender Monitor will begin watching the `sandbox/` directory.
-4. After a 5-second delay, the Adversary Simulator will begin its routine:
-   - Encrypting files in the sandbox.
-   - Sending HTTP GET beacons to the C2 Server.
-5. The Defender Monitor will output color-coded alerts to the console and write structured logs to `logs/events.jsonl`.
-6. To gracefully stop the simulation, press `Ctrl+C`.
-
-## Logs and Telemetry
-
-All filesystem events and alerts are written to `logs/events.jsonl` in a structured JSON format. This log can be consumed by external SIEMs or log aggregators for further analysis.
+As soon as the agent spins up, it will begin beaconing. Check your web dashboard—you will see the new endpoint appear in the Grid, and you can now dispatch Playbooks and view its Live Terminal logs!
 
 ## Safety and Disclaimer
-
 **This tool is for educational and testing purposes only.**
-All "malicious" actions are strictly confined to the dynamically generated `sandbox/` directory. The program includes built-in safeguards to prevent operations outside of this directory. Do not modify the safety checks unless you fully understand the implications.
-
+All "malicious" actions, such as the ransomware encryption and exfiltration archiving, are strictly confined to the dynamically generated `sandbox/` directory inside the agent folder.

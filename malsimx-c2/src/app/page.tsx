@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Terminal, ShieldAlert, Cpu, Activity, Clock, Server, MonitorSmartphone, Skull, Send, X } from "lucide-react";
+import { Terminal, ShieldAlert, Cpu, Activity, Clock, Server, MonitorSmartphone, Skull, Send, X, Download } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { AgentData } from "./api/db";
 
@@ -73,6 +73,20 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Failed to delete agent', err);
     }
+  };
+
+  const exportLogs = (agent: AgentData) => {
+    if (!agent.logs || agent.logs.length === 0) return;
+    const content = agent.logs.join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `malsimx_logs_${agent.id}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const getStatusColor = (status: string, lastSeen: string) => {
@@ -228,13 +242,23 @@ export default function Dashboard() {
                   </button>
                 </div>
 
-                <div className="mt-2 text-center">
+                <div className="mt-2 text-center flex justify-center gap-4">
                   <button
                     onClick={() => setExpandedLogsId(expandedLogsId === agent.id ? null : agent.id)}
                     className="text-xs text-slate-500 hover:text-emerald-400 font-bold tracking-widest uppercase transition-colors"
                   >
                     {expandedLogsId === agent.id ? "Close Terminal" : "View Live Terminal"}
                   </button>
+                  {expandedLogsId === agent.id && agent.logs && agent.logs.length > 0 && (
+                    <button
+                      onClick={() => exportLogs(agent)}
+                      className="text-xs flex items-center gap-1 text-slate-500 hover:text-blue-400 font-bold tracking-widest uppercase transition-colors"
+                      title="Export logs to TXT"
+                    >
+                      <Download className="w-3 h-3" />
+                      Export
+                    </button>
+                  )}
                 </div>
 
                 {expandedLogsId === agent.id && (
