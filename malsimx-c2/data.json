@@ -1,0 +1,18 @@
+[
+  {
+    "id": "agent-pz14qd",
+    "hostname": "silunas-MacBook-Air.local",
+    "os": "darwin",
+    "status": "active",
+    "ip": "::1",
+    "lastSeen": "2026-02-26T00:18:47.511Z"
+  },
+  {
+    "id": "agent-t89g69",
+    "hostname": "silunas-MacBook-Air.local",
+    "os": "darwin",
+    "status": "active",
+    "ip": "::1",
+    "lastSeen": "2026-02-26T00:46:11.231Z"
+  }
+]
