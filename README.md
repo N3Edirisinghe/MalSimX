@@ -1,4 +1,4 @@
-# MalSimX Simulator
+# PurpleTrace Simulator
 
 PurpleTrace Simulator is an educational Purple Team adversary emulation tool. It is designed to simulate realistic "malware-like" behaviors within a safe, isolated sandbox environment while simultaneously providing lightweight defender monitoring to detect those behaviors through filesystem telemetry and heuristics.
 
@@ -54,3 +54,4 @@ All filesystem events and alerts are written to `logs/events.jsonl` in a structu
 
 **This tool is for educational and testing purposes only.**
 All "malicious" actions are strictly confined to the dynamically generated `sandbox/` directory. The program includes built-in safeguards to prevent operations outside of this directory. Do not modify the safety checks unless you fully understand the implications.
+

