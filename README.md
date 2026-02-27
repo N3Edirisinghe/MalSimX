@@ -46,5 +46,6 @@ go build -ldflags="-w -s" -o malsimx-agent
 As soon as the agent spins up, it will begin beaconing. Check your web dashboard—you will see the new endpoint appear in the Grid, and you can now dispatch Playbooks and view its Live Terminal logs!
 
 ## Safety and Disclaimer
+
 **This tool is for educational and testing purposes only.**
 All "malicious" actions, such as the ransomware encryption and exfiltration archiving, are strictly confined to the dynamically generated `sandbox/` directory inside the agent folder.
